@@ -84,6 +84,24 @@ td.num{font:500 13px var(--f-mono)}
 .links .btn[aria-disabled="true"]{opacity:.45;pointer-events:none}
 .prompt{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
 .prompt code{flex:1 1 260px;min-width:0;font:500 13px var(--f-mono);background:var(--soft);border-radius:6px;padding:8px 10px;overflow-wrap:anywhere}
+.reqform{display:flex;flex-direction:column;gap:10px}
+.reqform label{display:flex;flex-direction:column;gap:4px;font-size:13px;font-weight:500}
+.reqform .hint,.hint{font-weight:400;color:var(--muted);font-size:12px}
+.reqform input,.reqform textarea,.reqform select{font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
+.reqform textarea{resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:480px){.row2{grid-template-columns:1fr}}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px}
+.btn.primary{background:var(--accent);color:var(--accent-ink);border-color:var(--accent);font-size:13px;padding:7px 14px}
+.btn.ghost{border-color:var(--line);color:var(--ink)}
+.req{background:var(--surface);border:1px dashed var(--accent);border-radius:10px;padding:12px 16px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;margin-bottom:10px}
+.req .rn{font-family:var(--f-display);font-weight:600;font-size:17px}
+.req .rm{font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.req .st{font:600 10px var(--f-mono);letter-spacing:.06em;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:1px 6px;margin-left:6px;vertical-align:2px}
+.req .acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.btn.armed{background:var(--warn);color:#fff;border-color:var(--warn)}
+@media (max-width:560px){.req{grid-template-columns:1fr}.req .acts{justify-content:flex-start}}
+.ppk{font:500 10px var(--f-mono);display:block;opacity:.8}
 .note{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;max-width:80ch}
 @media (max-width:560px){.phead{grid-template-columns:14px minmax(0,1fr)}.ptag{grid-column:2;justify-self:start}}
 @media (prefers-reduced-motion:reduce){.chev{transition:none}}
@@ -104,14 +122,25 @@ td.num{font:500 13px var(--f-mono)}
     <button class="chip" id="onlyFav" aria-pressed="false">★ Merkliste</button>
   </div>
 
+  <div id="reqs"></div>
   <div id="list"></div>
 
-  <section class="ask">
-    <h2>Neues Produkt suchen</h2>
-    <p>Gib den Artikel ein. Die Links zeigen sofort die Treffer in den wichtigsten Shops. Für einen vollständigen Preisvergleich kopierst du den Auftrag und schickst ihn Claude im Chat – die Resultate erscheinen danach hier.</p>
-    <input id="newItem" type="search" placeholder="z. B. Füllwatte 500 g, Gefrierbeutel mit Gleitverschluss" aria-label="Artikel">
-    <div class="links" id="newLinks"></div>
-    <div class="prompt"><code id="promptText">Produkt-Suche: …</code><button type="button" class="btn" id="copyPrompt">Auftrag kopieren</button></div>
+  <section class="ask" id="ask">
+    <h2 id="askTitle">Neues Produkt erfassen</h2>
+    <p>Artikel und Vorgaben eintragen und speichern. Die Links zeigen sofort Treffer in den wichtigsten Shops. Für den vollständigen Preisvergleich kopierst du den Auftrag und schickst ihn Claude im Chat – die Resultate erscheinen danach hier.</p>
+    <form id="reqForm" class="reqform" novalidate>
+      <label for="rName">Artikel<input id="rName" type="text" placeholder="z. B. Füllwatte, Gefrierbeutel mit Gleitverschluss" autocomplete="off"></label>
+      <label for="rMuss">Muss-Kriterien <span class="hint">Masse, Eigenschaften – eine pro Zeile</span><textarea id="rMuss" rows="3" placeholder="ca. 25 × 20 cm&#10;Gleitverschluss"></textarea></label>
+      <label for="rKann">Kann-Kriterien <span class="hint">optional</span><textarea id="rKann" rows="2"></textarea></label>
+      <div class="row2">
+        <label for="rLand">Land<select id="rLand"><option value="ALL">Schweiz und Deutschland</option><option value="CH">nur Schweiz</option><option value="DE">nur Deutschland</option></select></label>
+        <label for="rBudget">Max. Budget CHF <span class="hint">optional</span><input id="rBudget" type="number" min="0" step="1" inputmode="decimal"></label>
+      </div>
+      <div class="links" id="newLinks"></div>
+      <div class="prompt"><code id="promptText">Produkt-Suche: …</code></div>
+      <div class="btnrow"><button type="submit" class="btn primary" id="saveReq">Speichern</button><button type="button" class="btn" id="copyPrompt">Auftrag kopieren</button><button type="button" class="btn ghost" id="cancelEdit" hidden>Abbrechen</button></div>
+      <p class="hint" id="reqMsg"></p>
+    </form>
   </section>
 
   <p class="note">Preise sind eine Momentaufnahme vom angegebenen Stand – vor dem Kauf im Shop prüfen. «Inkl. Versand» heisst: Versandkosten sind im Total enthalten. Bei Händlern aus Deutschland oder Österreich zeigt Toppreise den Preis meist bereits inklusive Schweizer MWST und Verzollung; wo nicht, kommen rund 8,1 % MWST (ab CHF 5 Steuerbetrag) und eine Verzollungsgebühr dazu.</p>
@@ -165,13 +194,14 @@ function render(){
   const html=PRODUCTS.map(p=>{
     const offers=p.offers.filter(o=>(state.land==="ALL"||o.land===state.land)&&matches(p,o,q)&&(!state.fav||favs.has(o.id))).sort((a,b)=>a.total-b.total);
     if(!offers.length)return"";
-    const best=offers[0], open=state.open.has(p.id);
+    const byKg=offers.every(o=>o.kg);
+    const best=byKg?[...offers].sort((a,b)=>a.total/a.kg-b.total/b.kg)[0]:offers[0], open=state.open.has(p.id);
     const stand=new Date(p.stand).toLocaleString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
     return `<article class="prod${open?" open":""}">
       <button class="phead" data-toggle="${p.id}" aria-expanded="${open}">
         <span class="chev" aria-hidden="true"></span>
         <span><span class="pname">${esc(p.name)}</span><div class="pmeta">${offers.length} ${offers.length===1?"Angebot":"Angebote"} · Stand ${stand}</div></span>
-        <span class="ptag"><small>BESTER PREIS</small>CHF ${fmt(best.total)}</span>
+        <span class="ptag"><small>${byKg?"BESTER PREIS PRO KG":"BESTER PREIS"}</small>CHF ${fmt(best.total)}${byKg?`<span class="ppk">${esc(best.menge||"")} · CHF ${fmt(best.total/best.kg)}/kg</span>`:""}</span>
       </button>
       <div class="pbody"${open?"":" hidden"}>
         <div class="crit">${p.criteria.map(c=>`<span>${esc(c)}</span>`).join("")}</div>
@@ -202,30 +232,73 @@ $("list").addEventListener("click",e=>{
   if(f){const id=f.dataset.fav;favs.has(id)?favs.delete(id):favs.add(id);store.set("ps2-favs",[...favs]);render()}
 });
 
-// Neues Produkt: Sofort-Links und Auftrag für Claude
-function renderNew(){
-  const raw=$("newItem").value.trim(), q=encodeURIComponent(raw);
-  const L=[
-    ["Toppreise",`https://www.toppreise.ch/produktsuche?q=${q}`],
-    ["Google Shopping CH",`https://www.google.ch/search?tbm=shop&hl=de&gl=ch&q=${q}`],
-    ["Galaxus",`https://www.galaxus.ch/de/search?q=${q}`],
-    ["Brack",`https://www.brack.ch/search?query=${q}`],
-    ["Migros",`https://www.migros.ch/de/search?query=${q}`],
-    ["Coop",`https://www.coop.ch/de/search/?text=${q}`],
-    ["Geizhals DE",`https://geizhals.de/?fs=${q}`],
-    ["Amazon.de",`https://www.amazon.de/s?k=${q}`]
-  ];
-  $("newLinks").innerHTML=L.map(([n,u])=>raw?`<a class="btn" href="${u}" target="_blank" rel="noopener">${n} ↗</a>`:`<span class="btn" aria-disabled="true">${n}</span>`).join("");
-  $("promptText").textContent=`Produkt-Suche: ${raw||"…"} – bitte die besten Preise in der Schweiz und Deutschland recherchieren und in die App eintragen.`;
+// Neue Produkte erfassen: lokal gespeichert, bis Claude die Resultate einträgt
+let reqs=store.get("ps2-reqs",[]), editId=null, armed=null;
+const embedded=n=>PRODUCTS.some(p=>p.name.trim().toLowerCase()===String(n).trim().toLowerCase());
+function readReq(){return{name:$("rName").value.trim(),muss:$("rMuss").value.trim(),kann:$("rKann").value.trim(),land:$("rLand").value,budget:$("rBudget").value.trim()}}
+function fillReq(r){$("rName").value=r?.name||"";$("rMuss").value=r?.muss||"";$("rKann").value=r?.kann||"";$("rLand").value=r?.land||"ALL";$("rBudget").value=r?.budget||""}
+function promptFor(r){
+  const lines=[`Produkt-Suche: ${r.name||"…"}`];
+  const muss=(r.muss||"").split("\n").map(x=>x.trim()).filter(Boolean), kann=(r.kann||"").split("\n").map(x=>x.trim()).filter(Boolean);
+  if(muss.length)lines.push("Muss: "+muss.join("; "));
+  if(kann.length)lines.push("Kann: "+kann.join("; "));
+  lines.push("Land: "+({ALL:"Schweiz und Deutschland",CH:"nur Schweiz",DE:"nur Deutschland"}[r.land||"ALL"]));
+  if(r.budget)lines.push("Budget: max. CHF "+r.budget);
+  lines.push("Bitte die besten Preise recherchieren und in die App eintragen.");
+  return lines.join("\n");
 }
-$("newItem").addEventListener("input",renderNew);
-$("copyPrompt").addEventListener("click",async e=>{
-  const b=e.currentTarget,t=$("promptText").textContent;
+function renderNew(){
+  const r=readReq(), q=encodeURIComponent([r.name,...(r.muss||"").split("\n").filter(x=>/\d/.test(x)).slice(0,1)].join(" ").trim());
+  const ch=r.land!=="DE", de=r.land!=="CH";
+  const L=[
+    ch&&["Toppreise",`https://www.toppreise.ch/produktsuche?q=${q}`],
+    ch&&["Google Shopping CH",`https://www.google.ch/search?tbm=shop&hl=de&gl=ch&q=${q}`],
+    ch&&["Galaxus",`https://www.galaxus.ch/de/search?q=${q}`],
+    ch&&["Brack",`https://www.brack.ch/search?query=${q}`],
+    ch&&["Migros",`https://www.migros.ch/de/search?query=${q}`],
+    ch&&["Coop",`https://www.coop.ch/de/search/?text=${q}`],
+    de&&["Geizhals DE",`https://geizhals.de/?fs=${q}`],
+    de&&["Google Shopping DE",`https://www.google.de/search?tbm=shop&hl=de&gl=de&q=${q}`],
+    de&&["Amazon.de",`https://www.amazon.de/s?k=${q}`]
+  ].filter(Boolean);
+  $("newLinks").innerHTML=L.map(([n,u])=>r.name?`<a class="btn" href="${u}" target="_blank" rel="noopener">${n} ↗</a>`:`<span class="btn" aria-disabled="true">${n}</span>`).join("");
+  $("promptText").textContent=promptFor(r);
+}
+function renderReqs(){
+  const list=reqs.filter(r=>!embedded(r.name));
+  $("reqs").innerHTML=list.map(r=>`<div class="req">
+    <div><div class="rn">${esc(r.name)}<span class="st">WARTET AUF RECHERCHE</span></div>
+      <div class="rm">${esc([(r.muss||"").split("\n").filter(Boolean).join(" · "),{ALL:"CH + DE",CH:"nur CH",DE:"nur DE"}[r.land||"ALL"],r.budget?"max. CHF "+r.budget:""].filter(Boolean).join(" · "))}</div>
+      <div class="rm">erfasst ${new Date(r.when).toLocaleDateString("de-CH")}</div></div>
+    <div class="acts"><button type="button" class="btn" data-act="copy" data-id="${r.id}">Auftrag kopieren</button>
+      <button type="button" class="btn ghost" data-act="edit" data-id="${r.id}">Bearbeiten</button>
+      <button type="button" class="btn ghost${armed===r.id?" armed":""}" data-act="del" data-id="${r.id}">${armed===r.id?"Wirklich?":"Löschen"}</button></div></div>`).join("");
+}
+async function copyText(t,b,label){
   try{await navigator.clipboard.writeText(t);b.textContent="Kopiert"}
   catch{const r=document.createRange();r.selectNodeContents($("promptText"));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Markiert – jetzt kopieren"}
-  setTimeout(()=>{b.textContent="Auftrag kopieren"},2200);
+  setTimeout(()=>{b.textContent=label},2200);
+}
+["rName","rMuss","rKann","rLand","rBudget"].forEach(id=>$(id).addEventListener("input",renderNew));
+$("rLand").addEventListener("change",renderNew);
+$("reqForm").addEventListener("submit",e=>{
+  e.preventDefault();const r=readReq();
+  if(!r.name){$("reqMsg").textContent="Gib zuerst einen Artikel ein.";$("rName").focus();return}
+  if(editId){reqs=reqs.map(x=>x.id===editId?{...x,...r}:x)}else{reqs.unshift({id:"r"+Date.now().toString(36),when:Date.now(),...r})}
+  store.set("ps2-reqs",reqs);
+  $("reqMsg").textContent=`«${r.name}» gespeichert. Kopiere den Auftrag und schick ihn Claude im Chat.`;
+  editId=null;$("cancelEdit").hidden=true;$("askTitle").textContent="Neues Produkt erfassen";$("saveReq").textContent="Speichern";
+  fillReq(null);renderNew();renderReqs();
 });
-render();renderNew();
+$("copyPrompt").addEventListener("click",e=>copyText(promptFor(readReq()),e.currentTarget,"Auftrag kopieren"));
+$("cancelEdit").addEventListener("click",()=>{editId=null;$("cancelEdit").hidden=true;$("askTitle").textContent="Neues Produkt erfassen";$("saveReq").textContent="Speichern";fillReq(null);renderNew()});
+$("reqs").addEventListener("click",e=>{
+  const b=e.target.closest("[data-act]");if(!b)return;const r=reqs.find(x=>x.id===b.dataset.id);if(!r)return;
+  if(b.dataset.act==="copy")copyText(promptFor(r),b,"Auftrag kopieren");
+  else if(b.dataset.act==="edit"){editId=r.id;fillReq(r);renderNew();$("askTitle").textContent="Produkt bearbeiten";$("saveReq").textContent="Änderungen speichern";$("cancelEdit").hidden=false;$("ask").scrollIntoView({behavior:"smooth",block:"start"});$("rName").focus()}
+  else if(b.dataset.act==="del"){if(armed===r.id){reqs=reqs.filter(x=>x.id!==r.id);store.set("ps2-reqs",reqs);armed=null}else{armed=r.id;setTimeout(()=>{if(armed===r.id){armed=null;renderReqs()}},4000)}renderReqs()}
+});
+render();renderNew();renderReqs();
 </script>
 
 </body>
