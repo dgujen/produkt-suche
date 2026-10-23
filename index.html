@@ -101,6 +101,11 @@ td.num{font:500 13px var(--f-mono)}
 .req .acts{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
 .btn.armed{background:var(--warn);color:#fff;border-color:var(--warn)}
 @media (max-width:560px){.req{grid-template-columns:1fr}.req .acts{justify-content:flex-start}}
+.critrow{display:flex;flex-wrap:wrap;gap:8px;justify-content:space-between;align-items:flex-start}
+.crit span.kann{background:transparent;border:1px dashed var(--line)}
+.changed{font-size:13px;background:var(--soft);border-radius:8px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.chg{font:600 10px var(--f-mono);letter-spacing:.06em;color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:1px 6px}
+.reqform.edit{background:var(--bg);border-radius:8px;padding:12px}
 .ppk{font:500 10px var(--f-mono);display:block;opacity:.8}
 .note{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;max-width:80ch}
 @media (max-width:560px){.phead{grid-template-columns:14px minmax(0,1fr)}.ptag{grid-column:2;justify-self:start}}
@@ -177,6 +182,9 @@ const fmt=n=>Number(n).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFr
 const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
 const state={land:store.get("ps2-land","ALL"),q:"",fav:false,open:new Set(store.get("ps2-open",[PRODUCTS[0]?.id]))};
 let favs=new Set(store.get("ps2-favs",[]));
+let edits=store.get("ps2-edits",{}), editing=null;
+function crit(p){const e=edits[p.id];return{
+  muss:e?e.muss:p.criteria.join("\n"),kann:e?e.kann:(p.kann||""),land:e?e.land:(p.land||"ALL"),budget:e?e.budget:(p.budget||""),changed:!!e&&e.when>new Date(p.stand).getTime()}}
 $("today").textContent="Heute · "+new Date().toLocaleDateString("de-CH",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"});
 
 function renderLands(){
@@ -192,7 +200,9 @@ function render(){
   $("onlyFav").setAttribute("aria-pressed",state.fav);
   const q=state.q.trim().toLowerCase();
   const html=PRODUCTS.map(p=>{
-    const offers=p.offers.filter(o=>(state.land==="ALL"||o.land===state.land)&&matches(p,o,q)&&(!state.fav||favs.has(o.id))).sort((a,b)=>a.total-b.total);
+    const c=crit(p), bud=parseFloat(c.budget);
+    const okLand=o=>c.land==="ALL"||(c.land==="CH"?o.land==="CH":o.land!=="CH");
+    const offers=p.offers.filter(o=>okLand(o)&&(state.land==="ALL"||o.land===state.land)&&matches(p,o,q)&&(!state.fav||favs.has(o.id))).sort((a,b)=>a.total-b.total);
     if(!offers.length)return"";
     const byKg=offers.every(o=>o.kg);
     const best=byKg?[...offers].sort((a,b)=>a.total/a.kg-b.total/b.kg)[0]:offers[0], open=state.open.has(p.id);
@@ -204,7 +214,9 @@ function render(){
         <span class="ptag"><small>${byKg?"BESTER PREIS PRO KG":"BESTER PREIS"}</small>CHF ${fmt(best.total)}${byKg?`<span class="ppk">${esc(best.menge||"")} · CHF ${fmt(best.total/best.kg)}/kg</span>`:""}</span>
       </button>
       <div class="pbody"${open?"":" hidden"}>
-        <div class="crit">${p.criteria.map(c=>`<span>${esc(c)}</span>`).join("")}</div>
+        ${editing===p.id?editForm(p,c):`<div class="critrow"><div class="crit">${c.muss.split("\n").filter(Boolean).map(x=>`<span>${esc(x)}</span>`).join("")}${c.kann?c.kann.split("\n").filter(Boolean).map(x=>`<span class="kann">${esc(x)}</span>`).join(""):""}<span>${{ALL:"CH + DE",CH:"nur Schweiz",DE:"nur Deutschland"}[c.land]}</span>${c.budget?`<span>max. CHF ${esc(c.budget)}</span>`:""}</div>
+          <button type="button" class="btn ghost" data-edit="${p.id}">Kriterien bearbeiten</button></div>
+          ${c.changed?`<div class="changed"><span class="chg">KRITERIEN GEÄNDERT</span> Die Angebote unten stammen noch von den alten Kriterien. Schick Claude den Auftrag für eine neue Recherche. <button type="button" class="btn" data-copyp="${p.id}">Auftrag kopieren</button></div>`:""}`}
         ${p.fazit?`<p class="fazit">${esc(p.fazit)}</p>`:""}
         <div class="tablewrap"><table>
           <thead><tr><th>Produkt</th><th>Shop</th><th class="num">Total CHF</th><th class="num">davon Versand</th>${offers.some(o=>o.kg)?'<th class="num">pro kg</th>':""}<th></th></tr></thead>
@@ -213,7 +225,7 @@ function render(){
               ${o.ok?`<div class="dev"><span class="okpill">${esc(o.ok)}</span></div>`:""}${o.warn?`<div class="dev"><span class="warnpill">${esc(o.warn)}</span></div>`:""}
               ${o.note?`<div class="dev">${esc(o.note)}</div>`:""}</td>
             <td>${esc(o.shop)}<span class="cc ${o.land}">${o.land}</span></td>
-            <td class="num"><b>${fmt(o.total)}</b></td>
+            <td class="num"><b>${fmt(o.total)}</b>${!isNaN(bud)&&o.total>bud?'<div class="dev">über Budget</div>':""}</td>
             <td class="num">${o.versand?fmt(o.versand):"gratis"}</td>
             ${offers.some(x=>x.kg)?`<td class="num">${o.kg?fmt(o.total/o.kg):"–"}</td>`:""}
             <td style="white-space:nowrap"><a class="btn" href="${esc(o.url)}" target="_blank" rel="noopener">Öffnen ↗</a>
@@ -225,7 +237,23 @@ function render(){
 $("lands").addEventListener("click",e=>{const b=e.target.closest("[data-land]");if(!b)return;state.land=b.dataset.land;store.set("ps2-land",state.land);render()});
 $("q").addEventListener("input",e=>{state.q=e.target.value;render()});
 $("onlyFav").addEventListener("click",()=>{state.fav=!state.fav;render()});
+function editForm(p,c){return `<form class="reqform edit" data-form="${p.id}" novalidate>
+  <label for="e-muss">Muss-Kriterien <span class="hint">eine pro Zeile</span><textarea id="e-muss" rows="3">${esc(c.muss)}</textarea></label>
+  <label for="e-kann">Kann-Kriterien <span class="hint">optional</span><textarea id="e-kann" rows="2">${esc(c.kann)}</textarea></label>
+  <div class="row2"><label for="e-land">Land<select id="e-land"><option value="ALL"${c.land==="ALL"?" selected":""}>Schweiz und Deutschland</option><option value="CH"${c.land==="CH"?" selected":""}>nur Schweiz</option><option value="DE"${c.land==="DE"?" selected":""}>nur Deutschland</option></select></label>
+  <label for="e-bud">Max. Budget CHF <span class="hint">optional</span><input id="e-bud" type="number" min="0" step="1" value="${esc(c.budget)}"></label></div>
+  <div class="btnrow"><button type="submit" class="btn primary">Speichern</button><button type="button" class="btn ghost" data-cancel="1">Abbrechen</button>${edits[p.id]?`<button type="button" class="btn ghost" data-reset="${p.id}">Ursprüngliche Kriterien</button>`:""}</div></form>`}
+function promptForProduct(p){const c=crit(p);return promptFor({name:p.name,muss:c.muss,kann:c.kann,land:c.land,budget:c.budget}).replace("Bitte die besten Preise","Bitte neu recherchieren mit diesen Kriterien: die besten Preise")}
+$("list").addEventListener("submit",e=>{
+  const f=e.target.closest("[data-form]");if(!f)return;e.preventDefault();
+  edits[f.dataset.form]={muss:$("e-muss").value.trim(),kann:$("e-kann").value.trim(),land:$("e-land").value,budget:$("e-bud").value.trim(),when:Date.now()};
+  store.set("ps2-edits",edits);editing=null;render();
+});
 $("list").addEventListener("click",e=>{
+  const ed=e.target.closest("[data-edit]");if(ed){editing=ed.dataset.edit;render();setTimeout(()=>$("e-muss")?.focus(),0);return}
+  if(e.target.closest("[data-cancel]")){editing=null;render();return}
+  const rs=e.target.closest("[data-reset]");if(rs){delete edits[rs.dataset.reset];store.set("ps2-edits",edits);editing=null;render();return}
+  const cp=e.target.closest("[data-copyp]");if(cp){const p=PRODUCTS.find(x=>x.id===cp.dataset.copyp);if(p){$("promptText").textContent=promptForProduct(p);copyText(promptForProduct(p),cp,"Auftrag kopieren")}return}
   const t=e.target.closest("[data-toggle]");
   if(t){const id=t.dataset.toggle;state.open.has(id)?state.open.delete(id):state.open.add(id);store.set("ps2-open",[...state.open]);render();return}
   const f=e.target.closest("[data-fav]");
