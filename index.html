@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Produkt-Suche">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+</head>
+<body>
+<title>Produkt-Suche</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Instrument+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+/* Layout: eine Spalte wie ein Preisspiegel – Filterleiste oben, darunter je Produkt eine aufklappbare Karte mit Angebotsliste. Gelb = bester Preis. */
+:root{
+  --bg:#f3f5f6; --surface:#ffffff; --ink:#14202b; --muted:#5b6a76; --line:#d6dde2;
+  --accent:#0d5c63; --accent-ink:#ffffff; --soft:#e7eef0; --tag:#ffd93d; --tag-ink:#1d1a05;
+  --ok:#1f7a45; --warn:#a15c00; --ch:#c8102e; --de:#3a3a3a; --at:#9e1b32;
+  --f-display:"Bricolage Grotesque","Segoe UI",system-ui,sans-serif;
+  --f-body:"Instrument Sans","Segoe UI",system-ui,sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1519; --surface:#152027; --ink:#e6edf1; --muted:#93a4b0; --line:#2a3943;
+  --accent:#4fb3bc; --accent-ink:#06191b; --soft:#1c2a32; --tag:#f2cc2e; --tag-ink:#1d1a05;
+  --ok:#5ccb8a; --warn:#e3a54a; --ch:#ff5a6e; --de:#c9c9c9; --at:#ff6b84; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#0e1519; --surface:#152027; --ink:#e6edf1; --muted:#93a4b0; --line:#2a3943;
+  --accent:#4fb3bc; --accent-ink:#06191b; --soft:#1c2a32; --tag:#f2cc2e; --tag-ink:#1d1a05;
+  --ok:#5ccb8a; --warn:#e3a54a; --ch:#ff5a6e; --de:#c9c9c9; --at:#ff6b84; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:15px/1.5 var(--f-body)}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--bg)}
+.wrap{max-width:900px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:22px 56px;display:flex;flex-direction:column;gap:18px}
+header{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:flex-end;gap:12px;padding-bottom:14px;border-bottom:2px solid var(--ink)}
+h1{font-family:var(--f-display);font-weight:800;font-size:clamp(28px,5vw,40px);line-height:1.05;margin:0;letter-spacing:-.01em}
+h1 .tag{display:inline-block;background:var(--tag);color:var(--tag-ink);padding:0 .3em;border-radius:4px;transform:rotate(-2deg)}
+.sub{color:var(--muted);margin:6px 0 0;max-width:62ch;font-size:14px}
+.today{font:500 12px var(--f-mono);color:var(--muted)}
+.bar{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:10px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;border-bottom:1px solid var(--line)}
+.chip{font:600 13px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);padding:6px 12px;border-radius:999px;cursor:pointer;display:inline-flex;gap:6px;align-items:center}
+.chip[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.chip .n{font:500 11px var(--f-mono);opacity:.7}
+#q{flex:1 1 200px;min-width:0;font:inherit;padding:8px 12px;border:1px solid var(--line);border-radius:8px;background:var(--surface);color:var(--ink)}
+.chip:focus-visible,#q:focus-visible,button:focus-visible,a:focus-visible,input:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+.prod{background:var(--surface);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.phead{width:100%;display:grid;grid-template-columns:16px minmax(0,1fr) auto;gap:12px;align-items:center;padding:14px 16px;background:none;border:0;text-align:left;font:inherit;color:var(--ink);cursor:pointer}
+.chev{width:9px;height:9px;border-right:2px solid var(--muted);border-bottom:2px solid var(--muted);transform:rotate(-45deg);transition:transform .15s;justify-self:center}
+.prod.open .chev{transform:rotate(45deg)}
+.pname{font-family:var(--f-display);font-weight:600;font-size:19px;line-height:1.2}
+.pmeta{font-size:12px;color:var(--muted);margin-top:2px}
+.ptag{background:var(--tag);color:var(--tag-ink);font:600 15px var(--f-mono);padding:6px 10px;border-radius:6px;white-space:nowrap;text-align:right}
+.ptag small{display:block;font:600 9px var(--f-mono);letter-spacing:.08em}
+.pbody{padding:0 16px 16px;display:flex;flex-direction:column;gap:12px}
+.crit{display:flex;flex-wrap:wrap;gap:6px}
+.crit span{font-size:12px;background:var(--soft);border-radius:999px;padding:3px 10px}
+.fazit{border-left:3px solid var(--tag);padding:2px 0 2px 12px;font-size:14px;max-width:70ch}
+.tablewrap{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+table{border-collapse:collapse;width:100%;min-width:680px;font-size:13px}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:11px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);font-weight:600;background:var(--bg)}
+tr:last-child td{border-bottom:0}
+tr.top td{background:color-mix(in srgb,var(--tag) 18%,transparent)}
+td.num,th.num{text-align:right;white-space:nowrap;font-variant-numeric:tabular-nums}
+td.num{font:500 13px var(--f-mono)}
+.dev{color:var(--muted);font-size:12px;margin-top:2px}
+.cc{font:700 10px var(--f-mono);letter-spacing:.06em;padding:1px 5px;border-radius:3px;border:1.5px solid currentColor;margin-left:4px}
+.cc.CH{color:var(--ch)}.cc.DE{color:var(--de)}.cc.AT{color:var(--at)}
+.warnpill{font:600 10px var(--f-mono);color:var(--warn);border:1px solid var(--warn);border-radius:4px;padding:1px 5px}
+.okpill{font:600 10px var(--f-mono);color:var(--ok);border:1px solid var(--ok);border-radius:4px;padding:1px 5px}
+.btn{font:600 12px var(--f-body);color:var(--accent);text-decoration:none;border:1px solid var(--accent);padding:4px 9px;border-radius:6px;white-space:nowrap;background:transparent;cursor:pointer;display:inline-block}
+.star{border:0;background:none;cursor:pointer;font-size:17px;line-height:1;color:var(--muted);padding:0 2px}
+.star[aria-pressed="true"]{color:var(--warn)}
+.empty{color:var(--muted);padding:18px 0}
+
+.ask{background:var(--surface);border:1px solid var(--line);border-radius:10px;padding:16px;display:flex;flex-direction:column;gap:10px}
+.ask h2{font-family:var(--f-display);font-weight:600;font-size:19px;margin:0}
+.ask p{margin:0;font-size:14px;color:var(--muted);max-width:66ch}
+.ask input{font:inherit;padding:9px 12px;border:1px solid var(--line);border-radius:8px;background:var(--bg);color:var(--ink);width:100%}
+.links{display:flex;flex-wrap:wrap;gap:6px}
+.links .btn[aria-disabled="true"]{opacity:.45;pointer-events:none}
+.prompt{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.prompt code{flex:1 1 260px;min-width:0;font:500 13px var(--f-mono);background:var(--soft);border-radius:6px;padding:8px 10px;overflow-wrap:anywhere}
+.note{font-size:12px;color:var(--muted);border-top:1px solid var(--line);padding-top:12px;max-width:80ch}
+@media (max-width:560px){.phead{grid-template-columns:14px minmax(0,1fr)}.ptag{grid-column:2;justify-self:start}}
+@media (prefers-reduced-motion:reduce){.chev{transition:none}}
+</style>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Produkt-<span class="tag">Suche</span></h1>
+      <p class="sub">Von Claude recherchierte Preise für deine Artikel in der Schweiz und in Deutschland – sortiert nach Gesamtpreis inklusive Versand.</p>
+    </div>
+    <div class="today" id="today"></div>
+  </header>
+
+  <div class="bar">
+    <div id="lands" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+    <input id="q" type="search" placeholder="Filtern: Produkt, Shop …" aria-label="Filtern">
+    <button class="chip" id="onlyFav" aria-pressed="false">★ Merkliste</button>
+  </div>
+
+  <div id="list"></div>
+
+  <section class="ask">
+    <h2>Neues Produkt suchen</h2>
+    <p>Gib den Artikel ein. Die Links zeigen sofort die Treffer in den wichtigsten Shops. Für einen vollständigen Preisvergleich kopierst du den Auftrag und schickst ihn Claude im Chat – die Resultate erscheinen danach hier.</p>
+    <input id="newItem" type="search" placeholder="z. B. Füllwatte 500 g, Gefrierbeutel mit Gleitverschluss" aria-label="Artikel">
+    <div class="links" id="newLinks"></div>
+    <div class="prompt"><code id="promptText">Produkt-Suche: …</code><button type="button" class="btn" id="copyPrompt">Auftrag kopieren</button></div>
+  </section>
+
+  <p class="note">Preise sind eine Momentaufnahme vom angegebenen Stand – vor dem Kauf im Shop prüfen. «Inkl. Versand» heisst: Versandkosten sind im Total enthalten. Bei Händlern aus Deutschland oder Österreich zeigt Toppreise den Preis meist bereits inklusive Schweizer MWST und Verzollung; wo nicht, kommen rund 8,1 % MWST (ab CHF 5 Steuerbetrag) und eine Verzollungsgebühr dazu.</p>
+</div>
+
+<script>
+// Daten: von Claude recherchiert. Neue Produkte und Aktualisierungen trägt Claude hier ein.
+const PRODUCTS=[
+  {id:"fuellwatte",name:"Füllwatte",criteria:["Polyester","ca. 500 g"],stand:"2026-10-23T20:47",
+   fazit:"Am günstigsten ist die Rayher Recycling-Füllwatte 500 g über einen deutschen Händler: CHF 12.69 inklusive Versand, Schweizer MWST und Verzollung – rund CHF 25 pro Kilo und damit weniger als die Hälfte der meisten Angebote. Dieselbe Watte gibt es bei einem Schweizer Händler für CHF 17.80.",
+   offers:[
+    {id:"fw1",produkt:"Rayher Recycling-Füllwatte in Lagen, weiss, 100 % Polyester",menge:"500 g",kg:0.5,shop:"Händler in DE (via Toppreise)",land:"DE",total:12.69,versand:5.18,note:"inkl. Schweizer MWST und Verzollung · Öko-Tex, allergieneutral",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte%20500g"},
+    {id:"fw2",produkt:"Rayher Recycling-Füllwatte weiss",menge:"500 g",kg:0.5,shop:"Schweizer Händler (via Toppreise)",land:"CH",total:17.80,versand:4.90,note:"",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte%20500g"},
+    {id:"fw3",produkt:"LILENO HOME Füllwatte im Vliesbeutel",menge:"300 g",kg:0.3,shop:"Schweizer Händler (via Toppreise)",land:"CH",total:11.90,versand:0,note:"waschbar bis 95 °C",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte"},
+    {id:"fw4",produkt:"Füllwatte beige, 100 % Polyester",menge:"300 g",kg:0.3,shop:"Schweizer Händler (via Toppreise)",land:"CH",total:12.20,versand:6.95,note:"waschbar bis 60 °C",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte"},
+    {id:"fw5",produkt:"Manor Home Füllwatte weiss",menge:"250 g",kg:0.25,shop:"Schweizer Händler (via Toppreise)",land:"CH",total:11.45,versand:6.50,note:"",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte"},
+    {id:"fw6",produkt:"Glorex Füllwatte Soft-Flocken weiss",menge:"500 g",kg:0.5,shop:"Schweizer Händler (via Toppreise)",land:"CH",total:25.40,versand:0,note:"Flocken, waschbar 30 °C",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte%20500g"}
+   ]},
+  {id:"gleitbeutel",name:"Plastiksäckchen mit Schiebeverschluss",criteria:["ca. 25 × 20 cm","Gleit- bzw. Schiebeverschluss"],stand:"2026-10-23T19:28",
+   fazit:"Im Handel heisst der Schiebeverschluss meist «Gleitverschluss». Für Lebensmittel ist Cleanpac die einzige gefundene Variante mit echtem Schieber (Masse beim Händler prüfen). Fürs Büro treffen die Foldersys B5+ das Mass von rund 25 × 20 cm am besten.",
+   offers:[
+    {id:"gb1",produkt:"Toppits Zipper Gefrierbeutel 1 L",menge:"12 Stück",shop:"Galaxus",land:"CH",total:3.15,versand:0,warn:"kein Schieber, nur Druck-Zipper",note:"ab 4 Packungen CHF 2.45 pro Pack · Versand gratis ab CHF 50",url:"https://www.galaxus.ch/de/s7/product/toppits-zipper-12-x-1l-12x-lebensmittelverpackung-5748639"},
+    {id:"gb2",produkt:"Cleanpac Allzweck-Gefrierbeutel mit Gleitverschluss 1 L",menge:"15 Stück",shop:"Händler in AT (via Toppreise)",land:"AT",total:7.40,versand:5.90,ok:"echter Schieber",note:"Masse nicht angegeben, eher kleiner als 25 × 20 cm",url:"https://www.toppreise.ch/produktsuche?q=Gleitverschluss"},
+    {id:"gb3",produkt:"Cleanpac Allzweck-Gefrierbeutel mit Gleitverschluss 3 L",menge:"10 Stück",shop:"Händler in AT (via Toppreise)",land:"AT",total:7.40,versand:5.90,ok:"echter Schieber",note:"eher grösser als 25 × 20 cm",url:"https://www.toppreise.ch/produktsuche?q=Gleitverschluss"},
+    {id:"gb4",produkt:"Foldersys Gleitverschlussbeutel B5+, 0,3 mm",menge:"10 Stück",shop:"Schweizer Händler (via Toppreise)",land:"CH",total:23.40,versand:4.90,ok:"passt am besten zu 25 × 20 cm",note:"für Büro, Dokumente, Kleinteile",url:"https://www.toppreise.ch/produktsuche?q=Gleitverschluss"},
+    {id:"gb5",produkt:"Foldersys Gleitverschlussbeutel A5, 0,3 mm",menge:"10 Stück",shop:"Schweizer Händler (via Toppreise)",land:"CH",total:28.40,versand:4.90,note:"kleiner als 25 × 20 cm",url:"https://www.toppreise.ch/produktsuche?q=Gleitverschluss"}
+   ]}
+];
+
+const LAND_NAMES={CH:"Schweiz",DE:"Deutschland",AT:"Österreich"};
+const $=id=>document.getElementById(id);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const fmt=n=>Number(n).toLocaleString("de-CH",{minimumFractionDigits:2,maximumFractionDigits:2});
+const store={get(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+const state={land:store.get("ps2-land","ALL"),q:"",fav:false,open:new Set(store.get("ps2-open",[PRODUCTS[0]?.id]))};
+let favs=new Set(store.get("ps2-favs",[]));
+$("today").textContent="Heute · "+new Date().toLocaleDateString("de-CH",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"});
+
+function renderLands(){
+  const all=[...new Set(PRODUCTS.flatMap(p=>p.offers.map(o=>o.land)))];
+  const codes=["ALL",...["CH","DE","AT"].filter(c=>all.includes(c))];
+  $("lands").innerHTML=codes.map(c=>{
+    const n=PRODUCTS.reduce((a,p)=>a+p.offers.filter(o=>c==="ALL"||o.land===c).length,0);
+    return `<button class="chip" data-land="${c}" aria-pressed="${state.land===c}">${c==="ALL"?"Alle":LAND_NAMES[c]} <span class="n">${n}</span></button>`}).join("");
+}
+function matches(p,o,q){return !q||[p.name,...p.criteria,o.produkt,o.shop,o.note||""].join(" ").toLowerCase().includes(q)}
+function render(){
+  renderLands();
+  $("onlyFav").setAttribute("aria-pressed",state.fav);
+  const q=state.q.trim().toLowerCase();
+  const html=PRODUCTS.map(p=>{
+    const offers=p.offers.filter(o=>(state.land==="ALL"||o.land===state.land)&&matches(p,o,q)&&(!state.fav||favs.has(o.id))).sort((a,b)=>a.total-b.total);
+    if(!offers.length)return"";
+    const best=offers[0], open=state.open.has(p.id);
+    const stand=new Date(p.stand).toLocaleString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
+    return `<article class="prod${open?" open":""}">
+      <button class="phead" data-toggle="${p.id}" aria-expanded="${open}">
+        <span class="chev" aria-hidden="true"></span>
+        <span><span class="pname">${esc(p.name)}</span><div class="pmeta">${offers.length} ${offers.length===1?"Angebot":"Angebote"} · Stand ${stand}</div></span>
+        <span class="ptag"><small>BESTER PREIS</small>CHF ${fmt(best.total)}</span>
+      </button>
+      <div class="pbody"${open?"":" hidden"}>
+        <div class="crit">${p.criteria.map(c=>`<span>${esc(c)}</span>`).join("")}</div>
+        ${p.fazit?`<p class="fazit">${esc(p.fazit)}</p>`:""}
+        <div class="tablewrap"><table>
+          <thead><tr><th>Produkt</th><th>Shop</th><th class="num">Total CHF</th><th class="num">davon Versand</th>${offers.some(o=>o.kg)?'<th class="num">pro kg</th>':""}<th></th></tr></thead>
+          <tbody>${offers.map(o=>`<tr class="${o===best?"top":""}">
+            <td><b>${esc(o.produkt)}</b>${o.menge?` · ${esc(o.menge)}`:""}
+              ${o.ok?`<div class="dev"><span class="okpill">${esc(o.ok)}</span></div>`:""}${o.warn?`<div class="dev"><span class="warnpill">${esc(o.warn)}</span></div>`:""}
+              ${o.note?`<div class="dev">${esc(o.note)}</div>`:""}</td>
+            <td>${esc(o.shop)}<span class="cc ${o.land}">${o.land}</span></td>
+            <td class="num"><b>${fmt(o.total)}</b></td>
+            <td class="num">${o.versand?fmt(o.versand):"gratis"}</td>
+            ${offers.some(x=>x.kg)?`<td class="num">${o.kg?fmt(o.total/o.kg):"–"}</td>`:""}
+            <td style="white-space:nowrap"><a class="btn" href="${esc(o.url)}" target="_blank" rel="noopener">Öffnen ↗</a>
+              <button class="star" data-fav="${o.id}" aria-pressed="${favs.has(o.id)}" aria-label="${favs.has(o.id)?"Von Merkliste entfernen":"Auf Merkliste setzen"}">${favs.has(o.id)?"★":"☆"}</button></td>
+          </tr>`).join("")}</tbody></table></div>
+      </div></article>`}).join("");
+  $("list").innerHTML=html||`<div class="empty">Keine Angebote für diese Auswahl.${state.fav?" Tippe auf ☆ bei einem Angebot, um es zu merken.":""}</div>`;
+}
+$("lands").addEventListener("click",e=>{const b=e.target.closest("[data-land]");if(!b)return;state.land=b.dataset.land;store.set("ps2-land",state.land);render()});
+$("q").addEventListener("input",e=>{state.q=e.target.value;render()});
+$("onlyFav").addEventListener("click",()=>{state.fav=!state.fav;render()});
+$("list").addEventListener("click",e=>{
+  const t=e.target.closest("[data-toggle]");
+  if(t){const id=t.dataset.toggle;state.open.has(id)?state.open.delete(id):state.open.add(id);store.set("ps2-open",[...state.open]);render();return}
+  const f=e.target.closest("[data-fav]");
+  if(f){const id=f.dataset.fav;favs.has(id)?favs.delete(id):favs.add(id);store.set("ps2-favs",[...favs]);render()}
+});
+
+// Neues Produkt: Sofort-Links und Auftrag für Claude
+function renderNew(){
+  const raw=$("newItem").value.trim(), q=encodeURIComponent(raw);
+  const L=[
+    ["Toppreise",`https://www.toppreise.ch/produktsuche?q=${q}`],
+    ["Google Shopping CH",`https://www.google.ch/search?tbm=shop&hl=de&gl=ch&q=${q}`],
+    ["Galaxus",`https://www.galaxus.ch/de/search?q=${q}`],
+    ["Brack",`https://www.brack.ch/search?query=${q}`],
+    ["Migros",`https://www.migros.ch/de/search?query=${q}`],
+    ["Coop",`https://www.coop.ch/de/search/?text=${q}`],
+    ["Geizhals DE",`https://geizhals.de/?fs=${q}`],
+    ["Amazon.de",`https://www.amazon.de/s?k=${q}`]
+  ];
+  $("newLinks").innerHTML=L.map(([n,u])=>raw?`<a class="btn" href="${u}" target="_blank" rel="noopener">${n} ↗</a>`:`<span class="btn" aria-disabled="true">${n}</span>`).join("");
+  $("promptText").textContent=`Produkt-Suche: ${raw||"…"} – bitte die besten Preise in der Schweiz und Deutschland recherchieren und in die App eintragen.`;
+}
+$("newItem").addEventListener("input",renderNew);
+$("copyPrompt").addEventListener("click",async e=>{
+  const b=e.currentTarget,t=$("promptText").textContent;
+  try{await navigator.clipboard.writeText(t);b.textContent="Kopiert"}
+  catch{const r=document.createRange();r.selectNodeContents($("promptText"));const s=getSelection();s.removeAllRanges();s.addRange(r);b.textContent="Markiert – jetzt kopieren"}
+  setTimeout(()=>{b.textContent="Auftrag kopieren"},2200);
+});
+render();renderNew();
+</script>
+
+</body>
+</html>
