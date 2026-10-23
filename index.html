@@ -154,15 +154,20 @@ td.num{font:500 13px var(--f-mono)}
 <script>
 // Daten: von Claude recherchiert. Neue Produkte und Aktualisierungen trägt Claude hier ein.
 const PRODUCTS=[
-  {id:"fuellwatte",name:"Füllwatte",criteria:["Polyester","ca. 500 g"],stand:"2026-10-23T20:47",
-   fazit:"Am günstigsten ist die Rayher Recycling-Füllwatte 500 g über einen deutschen Händler: CHF 12.69 inklusive Versand, Schweizer MWST und Verzollung – rund CHF 25 pro Kilo und damit weniger als die Hälfte der meisten Angebote. Dieselbe Watte gibt es bei einem Schweizer Händler für CHF 17.80.",
+  {id:"fuellwatte",name:"Füllwatte",criteria:["Füllwatte bzw. Watte"],land:"ALL",stand:"2026-10-23T22:12",
+   fazit:"Mit Lieferung in die Schweiz ist die Rayher Recycling-Füllwatte 500 g am günstigsten: CHF 12.69 inklusive Versand, MWST und Verzollung (rund CHF 25 pro Kilo). In Deutschland gibt es Füllwatte deutlich billiger, etwa 1 kg GLAESER für € 3.49 oder Rayher 300 g für € 2.99 – dort kommen aber Versand dazu, und viele deutsche Shops liefern nicht in die Schweiz. Lohnt sich vor allem bei Lieferung an eine Adresse in Deutschland.",
    offers:[
     {id:"fw1",produkt:"Rayher Recycling-Füllwatte in Lagen, weiss, 100 % Polyester",menge:"500 g",kg:0.5,shop:"Händler in DE (via Toppreise)",land:"DE",total:12.69,versand:5.18,note:"inkl. Schweizer MWST und Verzollung · Öko-Tex, allergieneutral",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte%20500g"},
     {id:"fw2",produkt:"Rayher Recycling-Füllwatte weiss",menge:"500 g",kg:0.5,shop:"Schweizer Händler (via Toppreise)",land:"CH",total:17.80,versand:4.90,note:"",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte%20500g"},
     {id:"fw3",produkt:"LILENO HOME Füllwatte im Vliesbeutel",menge:"300 g",kg:0.3,shop:"Schweizer Händler (via Toppreise)",land:"CH",total:11.90,versand:0,note:"waschbar bis 95 °C",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte"},
     {id:"fw4",produkt:"Füllwatte beige, 100 % Polyester",menge:"300 g",kg:0.3,shop:"Schweizer Händler (via Toppreise)",land:"CH",total:12.20,versand:6.95,note:"waschbar bis 60 °C",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte"},
     {id:"fw5",produkt:"Manor Home Füllwatte weiss",menge:"250 g",kg:0.25,shop:"Schweizer Händler (via Toppreise)",land:"CH",total:11.45,versand:6.50,note:"",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte"},
-    {id:"fw6",produkt:"Glorex Füllwatte Soft-Flocken weiss",menge:"500 g",kg:0.5,shop:"Schweizer Händler (via Toppreise)",land:"CH",total:25.40,versand:0,note:"Flocken, waschbar 30 °C",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte%20500g"}
+    {id:"fw6",produkt:"Glorex Füllwatte Soft-Flocken weiss",menge:"500 g",kg:0.5,shop:"Schweizer Händler (via Toppreise)",land:"CH",total:25.40,versand:0,note:"Flocken, waschbar 30 °C",url:"https://www.toppreise.ch/produktsuche?q=F%C3%BCllwatte%20500g"},
+    {id:"fwd1",produkt:"GLAESER POWER FÜLL Füllwatte grau, recycelte Acrylfasern",menge:"1 kg",kg:1,shop:"Händler in DE (via Geizhals)",land:"DE",eur:3.49,noShip:true,warn:"grau, Acryl statt Polyester",note:"für Kissen, Sitz- und Yogamatten",url:"https://geizhals.de/?fs=F%C3%BCllwatte&sort=p"},
+    {id:"fwd2",produkt:"Rayher Füllwatte hochflauschig, 100 % Polyester",menge:"300 g",kg:0.3,shop:"Händler in DE (via Geizhals)",land:"DE",eur:2.99,noShip:true,note:"Flocken, waschbar 95 °C",url:"https://geizhals.de/?fs=F%C3%BCllwatte&sort=p"},
+    {id:"fwd3",produkt:"The Felt Store Füllwatte weiss, waschbar",menge:"450 g",kg:0.45,shop:"Händler in DE (via Geizhals)",land:"DE",eur:4.75,noShip:true,note:"",url:"https://geizhals.de/?fs=F%C3%BCllwatte&sort=p"},
+    {id:"fwd4",produkt:"maDDma Füllwatte Polyester für Kissen",menge:"250 g",kg:0.25,shop:"Händler in DE (via Geizhals)",land:"DE",eur:3.95,noShip:true,note:"",url:"https://geizhals.de/?fs=F%C3%BCllwatte&sort=p"},
+    {id:"fwd5",produkt:"Hobby Time Bastelwatte weiss",menge:"250 g",kg:0.25,shop:"6 Händler in DE (via Geizhals)",land:"DE",eur:4.25,noShip:true,note:"Preis ab",url:"https://geizhals.de/?fs=F%C3%BCllwatte&sort=p"}
    ]},
   {id:"gleitbeutel",name:"Plastiksäckchen mit Schiebeverschluss",criteria:["ca. 25 × 20 cm","Gleit- bzw. Schiebeverschluss"],stand:"2026-10-23T19:28",
    fazit:"Im Handel heisst der Schiebeverschluss meist «Gleitverschluss». Für Lebensmittel ist Cleanpac die einzige gefundene Variante mit echtem Schieber (Masse beim Händler prüfen). Fürs Büro treffen die Foldersys B5+ das Mass von rund 25 × 20 cm am besten.",
@@ -175,6 +180,8 @@ const PRODUCTS=[
    ]}
 ];
 
+const EUR_CHF=0.94;
+PRODUCTS.forEach(p=>p.offers.forEach(o=>{if(o.eur!=null&&o.total==null)o.total=Math.round(o.eur*EUR_CHF*100)/100}));
 const LAND_NAMES={CH:"Schweiz",DE:"Deutschland",AT:"Österreich"};
 const $=id=>document.getElementById(id);
 const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -185,7 +192,7 @@ let favs=new Set(store.get("ps2-favs",[]));
 let edits=store.get("ps2-edits",{}), editing=null;
 function crit(p){const e=edits[p.id];return{
   muss:e?e.muss:p.criteria.join("\n"),kann:e?e.kann:(p.kann||""),land:e?e.land:(p.land||"ALL"),budget:e?e.budget:(p.budget||""),changed:!!e&&e.when>new Date(p.stand).getTime()}}
-$("today").textContent="Version 3 · Heute · "+new Date().toLocaleDateString("de-CH",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"});
+$("today").textContent="Version 4 · Heute · "+new Date().toLocaleDateString("de-CH",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"});
 
 function renderLands(){
   const all=[...new Set(PRODUCTS.flatMap(p=>p.offers.map(o=>o.land)))];
@@ -205,7 +212,8 @@ function render(){
     const offers=p.offers.filter(o=>okLand(o)&&(state.land==="ALL"||o.land===state.land)&&matches(p,o,q)&&(!state.fav||favs.has(o.id))).sort((a,b)=>a.total-b.total);
     if(!offers.length)return"";
     const byKg=offers.every(o=>o.kg);
-    const best=byKg?[...offers].sort((a,b)=>a.total/a.kg-b.total/b.kg)[0]:offers[0], open=state.open.has(p.id);
+    const cand=offers.filter(o=>!o.noShip).length?offers.filter(o=>!o.noShip):offers;
+    const best=byKg?[...cand].sort((a,b)=>a.total/a.kg-b.total/b.kg)[0]:cand[0], open=state.open.has(p.id);
     const stand=new Date(p.stand).toLocaleString("de-CH",{day:"2-digit",month:"2-digit",year:"numeric",hour:"2-digit",minute:"2-digit"});
     return `<article class="prod${open?" open":""}">
       <button class="phead" data-toggle="${p.id}" aria-expanded="${open}">
@@ -225,8 +233,8 @@ function render(){
               ${o.ok?`<div class="dev"><span class="okpill">${esc(o.ok)}</span></div>`:""}${o.warn?`<div class="dev"><span class="warnpill">${esc(o.warn)}</span></div>`:""}
               ${o.note?`<div class="dev">${esc(o.note)}</div>`:""}</td>
             <td>${esc(o.shop)}<span class="cc ${o.land}">${o.land}</span></td>
-            <td class="num"><b>${fmt(o.total)}</b>${!isNaN(bud)&&o.total>bud?'<div class="dev">über Budget</div>':""}</td>
-            <td class="num">${o.versand?fmt(o.versand):"gratis"}</td>
+            <td class="num"><b>${fmt(o.total)}</b>${o.eur!=null?`<div class="dev">€ ${fmt(o.eur)}</div>`:""}${!isNaN(bud)&&o.total>bud?'<div class="dev">über Budget</div>':""}</td>
+            <td class="num">${o.noShip?'<span class="dev">zzgl. Versand<br>Lieferung CH prüfen</span>':o.versand?fmt(o.versand):"gratis"}</td>
             ${offers.some(x=>x.kg)?`<td class="num">${o.kg?fmt(o.total/o.kg):"–"}</td>`:""}
             <td style="white-space:nowrap"><a class="btn" href="${esc(o.url)}" target="_blank" rel="noopener">Öffnen ↗</a>
               <button class="star" data-fav="${o.id}" aria-pressed="${favs.has(o.id)}" aria-label="${favs.has(o.id)?"Von Merkliste entfernen":"Auf Merkliste setzen"}">${favs.has(o.id)?"★":"☆"}</button></td>
