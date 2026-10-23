@@ -185,7 +185,7 @@ let favs=new Set(store.get("ps2-favs",[]));
 let edits=store.get("ps2-edits",{}), editing=null;
 function crit(p){const e=edits[p.id];return{
   muss:e?e.muss:p.criteria.join("\n"),kann:e?e.kann:(p.kann||""),land:e?e.land:(p.land||"ALL"),budget:e?e.budget:(p.budget||""),changed:!!e&&e.when>new Date(p.stand).getTime()}}
-$("today").textContent="Heute · "+new Date().toLocaleDateString("de-CH",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"});
+$("today").textContent="Version 3 · Heute · "+new Date().toLocaleDateString("de-CH",{weekday:"short",day:"2-digit",month:"2-digit",year:"numeric"});
 
 function renderLands(){
   const all=[...new Set(PRODUCTS.flatMap(p=>p.offers.map(o=>o.land)))];
